@@ -1,0 +1,36 @@
+Anaconda Notes
+
+conda upgrade conda
+conda upgrade --all
+
+conda install numpy scipy pandas
+
+conda create -n env_name list of packages
+conda create -n my_env numpy.
+
+conda create -n py3 python=3 
+source activate my_env
+source deactivate
+
+Saving and loading environments
+* conda env export > env.yaml
+* conda env create -f environment.yaml  (to create env from yaml file)
+
+List environments
+conda env list
+conda env remove -n env_name
+
+Create python ver specific envs
+conda create -n py2 python=2 
+conda create -n py3 python=3
+
+Sharing env in github
+include a pip requirements.txt file using pip freeze (learn more here) for people not using conda.
+
+Conda myths and misconceptions
+https://jakevdp.github.io/blog/2016/08/25/conda-myths-and-misconceptions/
+
+https://conda.io/docs/using/index.html
+
+
+conda env create -f aind-environment-unix.yml
