@@ -34,3 +34,7 @@ https://conda.io/docs/using/index.html
 
 
 conda env create -f aind-environment-unix.yml
+
+Download the aind-environment-unix.yml file at the bottom of this page (right click, save file).
+conda env create -f aind-environment-unix.yml to create the environment.
+source activate aind 
