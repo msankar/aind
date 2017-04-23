@@ -7,7 +7,6 @@ from hmmlearn.hmm import GaussianHMM
 from sklearn.model_selection import KFold
 from asl_utils import combine_sequences
 
-
 class ModelSelector(object):
     '''
     base class for model selection (strategy design pattern)
@@ -66,6 +65,16 @@ class SelectorBIC(ModelSelector):
 
     http://www2.imm.dtu.dk/courses/02433/doc/ch6_slides.pdf
     Bayesian information criteria: BIC = -2 * logL + p * logN
+    Reference: ftp://metron.sta.uniroma1.it/RePEc/articoli/2002-LX-3_4-11.pdf
+        N: number of data points
+        p: number of parameters
+        d: number of features
+        n: number of HMM states
+        p = n*(n-1) + (n-1) + 2*d*n = n^2 + (2nd) - 1
+            No. of probabilities in transition matrix +
+            No. of probabilities in initial distribution +
+            No. of Gaussian mean +
+            No. of Gaussian variance
     """
 
     def select(self):
@@ -75,9 +84,24 @@ class SelectorBIC(ModelSelector):
         :return: GaussianHMM object
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+        lowestBICScore = None
+        lowestBICScoreModel = None
 
-        # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        for n_component in range(self.min_n_components, self.max_n_components+1):
+            try:
+                # Fit model using n compoments
+                model = self.base_model(n_component)
+                logL = model.score(self.X, self.lengths)
+
+                d = model.n_features
+                p = n_component ** 2 + (2 * n_component * d) - 1
+                bic_score = (-2 * logL + p * math.log(n_component))
+                if lowestBICScore is None or lowestBICScore > bic_score:
+                    lowestBICScore = bic_score
+                    lowestBICScoreModel = model
+            except:
+                pass
+        return lowestBICScoreModel
 
 
 class SelectorDIC(ModelSelector):
@@ -91,18 +115,66 @@ class SelectorDIC(ModelSelector):
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+        highestDICScore = None
+        bestModel = None
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        otherWords = list(self.words)
+        otherWords.remove(self.this_word)
 
+        for n in range(self.min_n_components, self.max_n_components+1):
+            try:
+                model = self.base_model(n) # Fits HMM model
+                score = model.score(self.X, self.lengths) #Get the score
+
+                sumOtherWordsScore = 0.0
+                # For each word that is not this word, fit model and score.
+                for otherWord in otherWords:
+                    X, lengths = self.hwords[otherWord]
+                    sumOtherWordsScore += model.score(X, lengths)
+
+                # Calculate DIC Score
+                dic =  score - (sumOtherWordsScore / (len(self.words) - 1))
+
+                # Keep model with higher DIC score
+                if highestDICScore is None or highestDICScore < dic:
+                    highestDICScore = dic
+                    bestModel = model
+            except:
+                    pass
+
+        return bestModel
 
 class SelectorCV(ModelSelector):
     ''' select best model based on average log Likelihood of cross-validation folds
-
+        Ref: http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
     '''
 
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        splitMethod = KFold()
+        allNComponents = []
+        allScores = []
+        for nComponents in range(self.min_n_components, self.max_n_components+1):
+            try:
+                if len(self.sequences) > 2: # Make sure we can perform a split.
+                    scores = []
+                    for trainIndexList, testIndexList in splitMethod.split(self.sequences):
+                        # Prepare training sequences
+                        self.X, self.lengths = combine_sequences(trainIndexList, self.sequences)
+                        # Prepare testing sequences
+                        X_test, lengths_test = combine_sequences(testIndexList, self.sequences)
+                        model = self.base_model(nComponents)
+                        score = model.score(X_test, lengths_test)
+                        scores.append(score)
+                    allScores.append(np.mean(scores))
+                else:
+                    model = self.base_model(nComponents)
+                    score = model.score(self.X, self.lengths)
+                    allScores.append(score)
+                allNComponents.append(nComponents)
+            except:
+                pass
+
+        bestComponents = allNComponents[np.argmax(allScores)] if allScores else self.n_constant
+        return self.base_model(bestComponents)
