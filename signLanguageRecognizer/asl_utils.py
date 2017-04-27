@@ -6,7 +6,7 @@ RAW_FEATURES = ['left-x', 'left-y', 'right-x', 'right-y']
 GROUND_FEATURES = ['grnd-rx', 'grnd-ry', 'grnd-lx', 'grnd-ly']
 
 
-def show_errors(guesses: list, test_set: SinglesData):
+def show_errors(guesses: list, test_set: SinglesData, printError: int=1):
     """ Print WER and sentence differences in tabular form
 
     :param guesses: list of test item answers, ordered
@@ -25,17 +25,21 @@ def show_errors(guesses: list, test_set: SinglesData):
         if guesses[word_id] != test_set.wordlist[word_id]:
             S += 1
 
-    print("\n**** WER = {}".format(float(S) / float(N)))
-    print("Total correct: {} out of {}".format(N - S, N))
-    print('Video  Recognized                                                    Correct')
-    print('=====================================================================================================')
-    for video_num in test_set.sentences_index:
-        correct_sentence = [test_set.wordlist[i] for i in test_set.sentences_index[video_num]]
-        recognized_sentence = [guesses[i] for i in test_set.sentences_index[video_num]]
-        for i in range(len(recognized_sentence)):
-            if recognized_sentence[i] != correct_sentence[i]:
-                recognized_sentence[i] = '*' + recognized_sentence[i]
-        print('{:5}: {:60}  {}'.format(video_num, ' '.join(recognized_sentence), ' '.join(correct_sentence)))
+    if printError == 1:
+        print("\n**** WER = {}".format(float(S) / float(N)))
+        print("Total correct: {} out of {}".format(N - S, N))
+    else :
+        print("\n**** WER = {}".format(float(S) / float(N)))
+        print("Total correct: {} out of {}".format(N - S, N))
+        print('Video  Recognized                                                    Correct')
+        print('=====================================================================================================')
+        for video_num in test_set.sentences_index:
+            correct_sentence = [test_set.wordlist[i] for i in test_set.sentences_index[video_num]]
+            recognized_sentence = [guesses[i] for i in test_set.sentences_index[video_num]]
+            for i in range(len(recognized_sentence)):
+                if recognized_sentence[i] != correct_sentence[i]:
+                    recognized_sentence[i] = '*' + recognized_sentence[i]
+            print('{:5}: {:60}  {}'.format(video_num, ' '.join(recognized_sentence), ' '.join(correct_sentence)))
 
 
 def getKey(item):
